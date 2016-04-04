@@ -8,6 +8,7 @@ using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Utilities;
 using Newtonsoft.Json;
+using Microsoft.Bot.Builder.Luis;
 
 namespace ScrumBot
 {
@@ -22,11 +23,35 @@ namespace ScrumBot
         {
             if (message.Type == "Message")
             {
-                // calculate something for us to return
+                                // calculate something for us to return
                 int length = (message.Text ?? string.Empty).Length;
 
+
+                var model = new LuisModelAttribute("c70d9132-2021-4987-809a-d70aad84649a", "6e20bf8cf4274230b783909b555f1f93");
+                var luisService = new LuisService(model);
+
+                var result = await luisService.QueryAsync(message.Text);
+                string replayMessage = "No intents";
+
+                if (result.Intents.Any())
+                {
+                    string firstIntent = result.Intents.First().Intent;
+                    switch (firstIntent)
+                    {
+                        case "ShowSprintStatus":
+                            replayMessage = "You asked about Sprint Status";
+                            break;
+                        case "ShowUnitTests":
+                            replayMessage = "You want to see unit tests results";
+                            break;
+                        default:
+                            replayMessage = "Sorry, I cannot understand your message. Could you please rephrase?";
+                            break;
+                    }
+                }
+
                 // return our reply to the user
-                return message.CreateReplyMessage($"You sent {length} characters to the Scrum Bot");
+                return message.CreateReplyMessage(replayMessage);
             }
             else
             {
