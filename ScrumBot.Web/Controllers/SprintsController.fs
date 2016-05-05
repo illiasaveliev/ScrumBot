@@ -48,6 +48,21 @@ type SprintsController() =
         let docQuery = Seq.toList <| client.CreateDocumentQuery<Sprint>(docCollection.DocumentsLink).Where(fun d -> d.id = docId.ToString())
         return docQuery.FirstOrDefault()
     }
+
+    let deleteDocumentById dbName collectionName docId = async {
+        let! docCollection = getCollection dbName collectionName
+        let docQuery = Seq.toList <| client.CreateDocumentQuery(docCollection.DocumentsLink).Where(fun d -> d.Id = docId.ToString())
+        let doc = docQuery.FirstOrDefault()        
+        
+        match doc with
+        | null -> ()
+        | _ -> client.DeleteDocumentAsync(doc.SelfLink) |> ignore
+    }
+
+    let createDocument dbName collectionName doc = async {
+        let! docCollection = getCollection dbName collectionName
+        return client.CreateDocumentAsync(docCollection.DocumentsLink, doc)        
+    }
        
     /// Gets all sprints.
     [<Route("sprints")>]
@@ -62,5 +77,13 @@ type SprintsController() =
         Async.RunSynchronously <| async { 
             let! document = getDocumentById "ScrumBotDB" "Sprints" id    
             return document      
+        }        
+
+    [<Route("sprints")>]
+    member x.Post(sprint: Sprint) =
+        Async.RunSynchronously <| async { 
+            let! deleteResult = deleteDocumentById "ScrumBotDB" "Sprints" sprint.id
+            let! createResult = createDocument "ScrumBotDB" "Sprints" sprint   
+            return 200   
         }        
 
